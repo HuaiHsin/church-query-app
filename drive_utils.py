@@ -6,7 +6,7 @@ from googleapiclient.http import MediaIoBaseDownload
 import os
 
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
-SERVICE_ACCOUNT_FILE = 'service_account.json'
+SERVICE_ACCOUNT_FILE = '/etc/secrets/service_account.json'
 
 def download_csv_from_drive(folder_id, target_filename):
     creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
