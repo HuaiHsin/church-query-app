@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>查詢聖工任務</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    label { display: block; margin-top: 10px; }
+    input { width: 100%; padding: 8px; }
+    button { margin-top: 15px; padding: 10px 20px; }
+    .task { margin-top: 15px; padding: 10px; background: #f2f2f2; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <h2>聖工任務查詢</h2>
+  <form method="get" action="/query">
+    <label>年份（西元）:</label>
+    <input type="number" name="year" value="{{ year or '' }}" required>
+
+    <label>月份:</label>
+    <input type="number" name="month" value="{{ month or '' }}" required>
+
+    <label>姓名（中文）:</label>
+    <input type="text" name="name" value="{{ name or '' }}" required>
+
+    <button type="submit">查詢</button>
+  </form>
+
+  {% if error %}
+    <p style="color: red;">{{ error }}</p>
+  {% endif %}
+
+  {% if results %}
+    <h3>查詢結果 - {{ name }}：</h3>
+    {% for r in results %}
+      <div class="task">
+        📅 {{ r.date }}（{{ r.weekday }}） {{ r.time }}<br>
+        {% for task in r.tasks %}
+          ▪ {{ task }}<br>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  {% endif %}
+</body>
+</html>

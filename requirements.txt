@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+pandas
+jinja2
+google-api-python-client
+google-auth
+
