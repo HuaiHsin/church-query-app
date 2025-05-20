@@ -8,9 +8,18 @@ import os
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
+
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+async def home(request: Request, year: int = None, month: int = None, name: str = None):
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "year": year,
+        "month": month,
+        "name": name,
+        "results": None,
+        "error": None
+    })
+
 
 @app.get("/query", response_class=HTMLResponse)
 async def query_schedule(request: Request, year: int, month: int, name: str):
@@ -23,6 +32,10 @@ async def query_schedule(request: Request, year: int, month: int, name: str):
     if not filepath:
         return templates.TemplateResponse("index.html", {
             "request": request,
+            "year": year,
+            "month": month,
+            "name": name,
+            "results": None,
             "error": f"找不到檔案：{target_filename}"
         })
 
@@ -65,8 +78,9 @@ async def query_schedule(request: Request, year: int, month: int, name: str):
 
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "results": result,
-        "name": name,
         "year": year,
-        "month": month
+        "month": month,
+        "name": name,
+        "results": result,
+        "error": None
     })
