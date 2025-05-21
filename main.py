@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from drive_utils import download_csv_from_drive
+from drive_utils import download_file_from_drive
 import pandas as pd
 import os
 
@@ -26,9 +26,9 @@ async def query_schedule(request: Request, year: int, month: int, name: str):
     folder_id = "18onzzoBnI3Lhwfm8IlMhwrOoIrcV5g8J"
     minguo_year = year - 1911
     month_name = ["一月","二月","三月","四月","五月","六月","七月","八月","九月","十月","十一月","十二月"][month - 1]
-    target_filename = f"{minguo_year}年{month_name}聖工安排表.csv"
+    search_keywords = [f"{minguo_year}年", f"{month_name}", "聖工安排"]
 
-    filepath = download_csv_from_drive(folder_id, target_filename)
+    filepath, ext = download_file_from_drive(folder_id, search_keywords)
     if not filepath:
         return templates.TemplateResponse("index.html", {
             "request": request,
@@ -36,10 +36,24 @@ async def query_schedule(request: Request, year: int, month: int, name: str):
             "month": month,
             "name": name,
             "results": None,
-            "error": f"找不到檔案：{target_filename}"
+            "error": f"找不到檔案：{' + '.join(search_keywords)}"
         })
 
-    df = pd.read_csv(filepath, header=1)
+    try:
+        if ext == '.csv':
+            df = pd.read_csv(filepath, header=1)
+        else:
+            df = pd.read_excel(filepath, header=1)
+    except Exception as e:
+        return templates.TemplateResponse("index.html", {
+            "request": request,
+            "year": year,
+            "month": month,
+            "name": name,
+            "results": None,
+            "error": f"讀取檔案時錯誤：{str(e)}"
+        })
+
     df.columns = [c.strip() for c in df.columns]
     for i in range(1, len(df)):
         if pd.isna(df.at[i, '日期']) and pd.notna(df.at[i-1, '日期']):
