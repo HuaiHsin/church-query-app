@@ -51,10 +51,9 @@ async def query_schedule(request: Request, year: int, month: int, name: str):
             "error": f"讀取檔案時錯誤：{str(e)}"
         })
 
-    # 整理欄位名稱
     df.columns = [c.strip() for c in df.columns]
 
-    # 補齊合併儲存格造成的空值（如星期、日期）
+    # 補合併儲存格造成的空值
     for i in range(1, len(df)):
         if pd.isna(df.at[i, '日期']) and pd.notna(df.at[i-1, '日期']):
             df.at[i, '日期'] = df.at[i-1, '日期']
@@ -78,7 +77,6 @@ async def query_schedule(request: Request, year: int, month: int, name: str):
         is_saturday = weekday == '六'
         is_second_row = prev_date == row['日期'] and is_saturday
 
-        # 判斷時間區段
         if is_saturday:
             if is_second_row:
                 start_time = f"{date_str}T13:30:00+08:00"
@@ -96,11 +94,15 @@ async def query_schedule(request: Request, year: int, month: int, name: str):
         matched = []
 
         for field in name_fields:
-            if field in row and pd.notna(row[field]) and name in str(row[field]):
-                matched.append(f"{field}: {row[field]}")
+            if field in row and pd.notna(row[field]):
+                cell_value = str(row[field])
+                if name in cell_value:
+                    matched.append(f"{field}: {cell_value}")
 
-        if misc_field in row and pd.notna(row[misc_field]) and name in str(row[misc_field]):
-            matched.append(row[misc_field])
+        if misc_field in row and pd.notna(row[misc_field]):
+            misc_value = str(row[misc_field])
+            if name in misc_value:
+                matched.append(misc_value)
 
         if matched:
             result.append({
