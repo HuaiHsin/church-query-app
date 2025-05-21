@@ -40,10 +40,7 @@ async def query_schedule(request: Request, year: int, month: int, name: str):
         })
 
     try:
-        if ext == '.csv':
-            df = pd.read_csv(filepath, header=1)
-        else:
-            df = pd.read_excel(filepath, header=1)
+        df = pd.read_csv(filepath, header=1) if ext == '.csv' else pd.read_excel(filepath, header=1)
     except Exception as e:
         return templates.TemplateResponse("index.html", {
             "request": request,
@@ -54,7 +51,10 @@ async def query_schedule(request: Request, year: int, month: int, name: str):
             "error": f"讀取檔案時錯誤：{str(e)}"
         })
 
+    # 整理欄位名稱
     df.columns = [c.strip() for c in df.columns]
+
+    # 補齊合併儲存格造成的空值（如星期、日期）
     for i in range(1, len(df)):
         if pd.isna(df.at[i, '日期']) and pd.notna(df.at[i-1, '日期']):
             df.at[i, '日期'] = df.at[i-1, '日期']
@@ -65,6 +65,8 @@ async def query_schedule(request: Request, year: int, month: int, name: str):
     name_fields = ['領 會', '翻 譯', '唱 詩', '司 琴', '音 控', '投影操作', '岡山車載', '路竹車載']
     misc_field = '訪問/炊事/謝飯/跪墊/附記'
 
+    prev_date = None
+
     for _, row in df.iterrows():
         try:
             day = int(float(row['日期']))
@@ -72,7 +74,25 @@ async def query_schedule(request: Request, year: int, month: int, name: str):
             continue
 
         date_str = f"{year}/{month:02d}/{day:02d}"
-        time_range = "20:00" if row['星期'] != '六' else "09:30"
+        weekday = str(row['星期']).strip()
+        is_saturday = weekday == '六'
+        is_second_row = prev_date == row['日期'] and is_saturday
+
+        # 判斷時間區段
+        if is_saturday:
+            if is_second_row:
+                start_time = f"{date_str}T13:30:00+08:00"
+                end_time = f"{date_str}T15:00:00+08:00"
+                time_range = "13:30-15:00"
+            else:
+                start_time = f"{date_str}T09:30:00+08:00"
+                end_time = f"{date_str}T11:00:00+08:00"
+                time_range = "09:30-11:00"
+        else:
+            start_time = f"{date_str}T20:00:00+08:00"
+            end_time = f"{date_str}T21:00:00+08:00"
+            time_range = "20:00-21:00"
+
         matched = []
 
         for field in name_fields:
@@ -85,10 +105,12 @@ async def query_schedule(request: Request, year: int, month: int, name: str):
         if matched:
             result.append({
                 "date": date_str,
-                "weekday": row['星期'],
+                "weekday": weekday,
                 "tasks": matched,
                 "time": time_range
             })
+
+        prev_date = row['日期']
 
     return templates.TemplateResponse("index.html", {
         "request": request,
