@@ -10,13 +10,14 @@ from googleapiclient.http import MediaIoBaseDownload
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 SERVICE_ACCOUNT_FILE = 'service_account.json'
 
+
 def get_drive_service():
     creds = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES)
     return build('drive', 'v3', credentials=creds)
 
+
 def download_file_from_drive(folder_id, keywords, ext_list=['.csv', '.xlsx']):
-    """下載符合關鍵字與副檔名的第一個檔案"""
     service = get_drive_service()
     query = f"'{folder_id}' in parents"
     results = service.files().list(q=query, fields="files(id, name)").execute()
@@ -37,8 +38,8 @@ def download_file_from_drive(folder_id, keywords, ext_list=['.csv', '.xlsx']):
                 return file_path, ext
     return None, None
 
+
 def extract_choir_schedule_from_image(folder_id, keywords, target_month, target_name):
-    """搜尋圖片並用 OCR 擷取特定月份中包含指定姓名的安排"""
     service = get_drive_service()
     query = f"'{folder_id}' in parents and mimeType='image/jpeg'"
     results = service.files().list(q=query, fields="files(id, name)").execute()
@@ -62,15 +63,16 @@ def extract_choir_schedule_from_image(folder_id, keywords, target_month, target_
             return parse_schedule_text(text, target_month, target_name)
     return []
 
+
 def parse_schedule_text(text, month, name):
     lines = text.splitlines()
     results = []
     current_date = ""
     for line in lines:
         if f"{month}月" in line and "日" in line:
-            current_date = re.search(r"\d{1,2}月\d{1,2}日", line)
-            if current_date:
-                current_date = current_date.group()
+            match = re.search(r"\d{1,2}月\d{1,2}日", line)
+            if match:
+                current_date = match.group()
         elif current_date and name in line:
             results.append(f"{current_date}：{line.strip()}")
     return results
