@@ -49,7 +49,7 @@ def download_file_from_drive(folder_id, keywords, ext_list=['.csv', '.xlsx']):
     return None, None
 
 
-def extract_choir_schedule_from_image(folder_id, keywords, target_month, target_name):
+def extract_choir_schedule_from_image(folder_id, keywords, target_month, target_name, return_debug=False):
     service = get_drive_service()
     ensure_cache_dir()
 
@@ -64,12 +64,13 @@ def extract_choir_schedule_from_image(folder_id, keywords, target_month, target_
             img_path = os.path.join("cache", name)
             ocr_txt_path = img_path + ".txt"
 
-            # 已有 OCR 結果就用快取
+            used_cache = False
+
             if os.path.exists(ocr_txt_path):
                 with open(ocr_txt_path, encoding='utf-8') as f:
                     text = f.read()
+                used_cache = True
             else:
-                # 沒有就先下載圖片
                 if not os.path.exists(img_path):
                     request = service.files().get_media(fileId=file_id)
                     with open(img_path, 'wb') as f:
@@ -78,17 +79,22 @@ def extract_choir_schedule_from_image(folder_id, keywords, target_month, target_
                         while not done:
                             status, done = downloader.next_chunk()
 
-                # 進行 OCR
                 img = Image.open(img_path)
                 text = pytesseract.image_to_string(img, lang='chi_tra')
 
                 with open(ocr_txt_path, "w", encoding="utf-8") as f:
                     f.write(text)
 
-            return parse_schedule_text(text, target_month, target_name)
+            result_lines = parse_schedule_text(text, target_month, target_name)
 
+            if return_debug:
+                return result_lines, text, used_cache
+            else:
+                return result_lines
+
+    if return_debug:
+        return [], "", False
     return []
-
 
 def parse_schedule_text(text, month, name):
     lines = text.splitlines()
