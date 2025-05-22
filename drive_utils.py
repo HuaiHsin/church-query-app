@@ -59,7 +59,8 @@ def extract_choir_schedule_from_image(folder_id, keywords, target_month, target_
 
             img = Image.open(img_path)
             text = pytesseract.image_to_string(img, lang='chi_tra')
-
+            print("=== OCR 文字輸出 ===")
+            print(text)
             return parse_schedule_text(text, target_month, target_name)
     return []
 
