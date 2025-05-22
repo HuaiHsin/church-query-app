@@ -2,19 +2,56 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>查詢聖工任務</title>
+  <title>聖工任務查詢</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: sans-serif; padding: 20px; }
-    label { display: block; margin-top: 10px; }
-    input { width: 100%; padding: 8px; }
-    button { margin-top: 15px; padding: 10px 20px; }
-    .task { margin-top: 15px; padding: 10px; background: #f2f2f2; border-radius: 5px; }
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      max-width: 700px;
+      margin: auto;
+    }
+    h2, h3 {
+      color: #2c3e50;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      background-color: #3498db;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    .task {
+      margin-top: 15px;
+      padding: 10px;
+      background: #f2f2f2;
+      border-left: 5px solid #3498db;
+      border-radius: 4px;
+    }
+    .error {
+      color: red;
+      margin-top: 15px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
-  <h2>真耶穌教會岡山教會</h2>
-  <h3>聖工安排表查詢</h3>
+  <h2>聖工任務查詢</h2>
+
   <form method="get" action="/query">
     <label>年份（西元）:</label>
     <input type="number" name="year" value="{{ year or '' }}" required>
@@ -29,11 +66,11 @@
   </form>
 
   {% if error %}
-    <p style="color: red;">{{ error }}</p>
+    <p class="error">⚠️ {{ error }}</p>
   {% endif %}
 
   {% if results %}
-    <h3>查詢結果 - {{ name }}：</h3>
+    <h3>一般聖工安排</h3>
     {% for r in results %}
       <div class="task">
         📅 {{ r.date }}（{{ r.weekday }}） {{ r.time }}<br>
@@ -45,13 +82,12 @@
   {% endif %}
 
   {% if choir_results %}
-<h3>佳音詩班安排（圖片）</h3>
-<ul>
-  {% for line in choir_results %}
-  <li>{{ line }}</li>
-  {% endfor %}
-</ul>
-{% endif %}
-
+    <h3>佳音詩班安排（圖片）</h3>
+    <ul>
+      {% for line in choir_results %}
+        <li>🎶 {{ line }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
 </body>
 </html>
