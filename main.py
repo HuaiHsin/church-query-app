@@ -16,6 +16,9 @@ async def home(request: Request, year: int = None, month: int = None, name: str 
         "month": month,
         "name": name,
         "results": None,
+        "choir_results": None,
+        "ocr_debug": None,
+        "ocr_from_cache": False,
         "error": None
     })
 
@@ -32,7 +35,7 @@ async def query_schedule(request: Request, year: int, month: int, name: str):
     results = []
     error = None
 
-    # --- 解析 Excel/CSV 安排表 ---
+    # 解析 CSV/XLSX
     if filepath:
         try:
             df = pd.read_csv(filepath, header=1) if ext == '.csv' else pd.read_excel(filepath, header=1)
@@ -87,9 +90,10 @@ async def query_schedule(request: Request, year: int, month: int, name: str):
         except Exception as e:
             error = f"CSV/XLSX 讀取錯誤：{str(e)}"
 
-    # --- 解析 圖片佳音詩班安排表 ---
+    # 圖片 OCR 安排表
     choir_keywords = [f"{minguo_year}年", "佳音", "安排"]
-    choir_results = extract_choir_schedule_from_image(folder_id, choir_keywords, month, name)
+    choir_results, ocr_text, ocr_from_cache = extract_choir_schedule_from_image(
+        folder_id, choir_keywords, month, name, return_debug=True)
 
     return templates.TemplateResponse("index.html", {
         "request": request,
@@ -98,5 +102,7 @@ async def query_schedule(request: Request, year: int, month: int, name: str):
         "name": name,
         "results": results,
         "choir_results": choir_results,
+        "ocr_debug": ocr_text,
+        "ocr_from_cache": ocr_from_cache,
         "error": error
     })
