@@ -99,17 +99,19 @@ def extract_choir_schedule_from_image(folder_id, keywords, target_month, target_
 def parse_schedule_text(text, month, name):
     lines = text.splitlines()
     results = []
-    current_date = ""
+    current_date = None
+
     for line in lines:
         line = line.strip()
         if not line:
             continue
 
-        if re.search(rf"{month}月\d{{1,2}}日", line):
-            match = re.search(rf"{month}月\d{{1,2}}日", line)
-            if match:
-                current_date = match.group()
+        # 1. 尋找日期（例如 6月7 或 6月14）
+        date_match = re.search(rf"{month}月\d{{1,2}}", line)
+        if date_match:
+            current_date = date_match.group()
 
+        # 2. 找到名稱（模糊比對，例如「雅婷」）
         if name in line and current_date:
             results.append(f"{current_date}：{line}")
 
