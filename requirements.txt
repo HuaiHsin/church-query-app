@@ -5,3 +5,5 @@ jinja2
 google-api-python-client
 google-auth
 openpyxl
+pytesseract
+Pillow
