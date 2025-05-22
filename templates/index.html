@@ -43,5 +43,15 @@
       </div>
     {% endfor %}
   {% endif %}
+
+  {% if choir_results %}
+<h3>佳音詩班安排（圖片）</h3>
+<ul>
+  {% for line in choir_results %}
+  <li>{{ line }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
 </body>
 </html>
