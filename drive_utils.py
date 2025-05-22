@@ -68,11 +68,18 @@ def parse_schedule_text(text, month, name):
     lines = text.splitlines()
     results = []
     current_date = ""
+
     for line in lines:
-        if f"{month}月" in line and "日" in line:
-            match = re.search(r"\d{1,2}月\d{1,2}日", line)
-            if match:
-                current_date = match.group()
-        elif current_date and name in line:
-            results.append(f"{current_date}：{line.strip()}")
+        line = line.strip()
+        if not line:
+            continue
+
+        # 判斷是否為新日期行（例如 6月7日）
+        if re.search(rf"{month}月\d{{1,2}}日", line):
+            current_date = re.search(rf"{month}月\d{{1,2}}日", line).group()
+
+        # 如果這行包含查詢名稱，就視為有效任務
+        if name in line and current_date:
+            results.append(f"{current_date}：{line}")
+
     return results
