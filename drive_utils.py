@@ -81,6 +81,46 @@ def parse_schedule_text(text, target_month, name):
 
     return results
 
+def parse_choir_text_structured(text, target_month: int, target_name: str):
+    lines = text.splitlines()
+    results = []
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        line = correct_ocr_errors(line)
+
+        match = re.search(rf"{target_month}月\d{{1,2}}", line)
+        if not match:
+            continue
+
+        date_str = match.group()
+        date_parts = re.findall(r"(\d{1,2})月(\d{1,2})", date_str)
+        if not date_parts:
+            continue
+
+        content = line.replace(date_str, "").strip()
+        content = re.sub(r"\d{2}:\d{2}.*", "", content)
+        segments = re.split(r'\s{2,}|\t', content)
+        segments = [s.strip() for s in segments if s.strip()]
+        if not segments:
+            continue
+
+        roles = ["教唱", "司琴", "分享"]
+        for i, seg in enumerate(segments[:3]):
+            for person in seg.replace(" ", "").split("/"):
+                if target_name in person:
+                    results.append({
+                        "date": f"2025/{target_month:02d}/{date_parts[0][1]:0>2}",
+                        "time": "16:30-18:00",
+                        "role": roles[i],
+                        "name": person
+                    })
+
+    return results
+
 def extract_choir_schedule_from_image(folder_id, keywords, target_month, target_name, return_debug=False):
     service = get_drive_service()
     ensure_cache_dir()
@@ -95,7 +135,6 @@ def extract_choir_schedule_from_image(folder_id, keywords, target_month, target_
             file_id = file['id']
             img_path = os.path.join("cache", name)
             ocr_txt_path = img_path + ".txt"
-
             used_cache = False
 
             if os.path.exists(ocr_txt_path):
@@ -110,16 +149,15 @@ def extract_choir_schedule_from_image(folder_id, keywords, target_month, target_
                         done = False
                         while not done:
                             status, done = downloader.next_chunk()
+
                 img = Image.open(img_path)
                 text = pytesseract.image_to_string(img, lang='chi_tra')
                 with open(ocr_txt_path, "w", encoding="utf-8") as f:
                     f.write(text)
 
-            result_lines = parse_schedule_text(text, target_month, target_name)
-
             if return_debug:
-                return result_lines, text, used_cache
+                return [], text, used_cache
             else:
-                return result_lines
+                return []
 
     return ([], "", False) if return_debug else []
