@@ -84,13 +84,11 @@
 {% if choir_results %}
   <h3>佳音詩班安排（圖片）</h3>
   <ul>
-    {% for line in choir_results %}
-      <li>🎶 {{ line }}</li>
+    {% for r in choir_results %}
+      <li>📅 {{ r.date }} 16:30-18:00<br>▪ {{ r.role }}: {{ r.name }}</li>
     {% endfor %}
   </ul>
-  <p style="color: gray;">
-    資料來源：OCR {% if ocr_from_cache %}（使用快取）{% else %}（重新辨識）{% endif %}
-  </p>
+  <p style="color: gray;">OCR {% if ocr_from_cache %}（使用快取）{% else %}（重新辨識）{% endif %}</p>
 {% endif %}
 
 {% if ocr_debug %}
