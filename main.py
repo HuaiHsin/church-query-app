@@ -1,7 +1,11 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from drive_utils import download_file_from_drive, extract_choir_schedule_from_image
+from drive_utils import (
+    download_file_from_drive,
+    extract_choir_schedule_from_image,
+    parse_choir_text_structured
+)
 import pandas as pd
 
 app = FastAPI()
@@ -20,6 +24,7 @@ async def home(request: Request, year: int = None, month: int = None, name: str 
         "ocr_from_cache": False,
         "error": None
     })
+
 
 @app.get("/query", response_class=HTMLResponse)
 async def query_schedule(request: Request, year: int, month: int, name: str):
@@ -90,9 +95,12 @@ async def query_schedule(request: Request, year: int, month: int, name: str):
 
     # --- 圖片佳音詩班安排 ---
     choir_keywords = [f"{minguo_year}年", "佳音", "安排"]
-    choir_results, ocr_text, ocr_from_cache = extract_choir_schedule_from_image(
+    raw_results, ocr_text, ocr_from_cache = extract_choir_schedule_from_image(
         folder_id, choir_keywords, month, name, return_debug=True
     )
+
+    # 將原始 OCR 文本經新結構化邏輯分析
+    choir_results = parse_choir_text_structured(ocr_text, month, name)
 
     return templates.TemplateResponse("index.html", {
         "request": request,
