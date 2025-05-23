@@ -92,6 +92,7 @@ def parse_choir_text_structured(text, target_month: int, target_name: str):
 
         line = correct_ocr_errors(line)
 
+        # 確認是該月份資料行
         match = re.search(rf"{target_month}月\d{{1,2}}", line)
         if not match:
             continue
@@ -101,16 +102,17 @@ def parse_choir_text_structured(text, target_month: int, target_name: str):
         if not date_parts:
             continue
 
+        # 擷取人名群組
         content = line.replace(date_str, "").strip()
         content = re.sub(r"\d{2}:\d{2}.*", "", content)
-        segments = re.split(r'\s{2,}|\t', content)
-        segments = [s.strip() for s in segments if s.strip()]
-        if not segments:
-            continue
 
+        # 假設格式：教唱 / 司琴 / 分享 三組人名，用分隔符（多空格、制表符）或中文標點分段
+        parts = re.split(r'\s{2,}|\t|　', content)
+        parts = [p.strip() for p in parts if p.strip()]
         roles = ["教唱", "司琴", "分享"]
-        for i, seg in enumerate(segments[:3]):
-            for person in seg.replace(" ", "").split("/"):
+
+        for i in range(min(len(parts), 3)):
+            for person in parts[i].replace(" ", "").split("/"):
                 if target_name in person:
                     results.append({
                         "date": f"2025/{target_month:02d}/{date_parts[0][1]:0>2}",
