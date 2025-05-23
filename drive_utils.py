@@ -10,15 +10,21 @@ from googleapiclient.http import MediaIoBaseDownload
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 SERVICE_ACCOUNT_FILE = 'service_account.json'
 
+NAME_CORRECTIONS = {
+    "請雅": "靖雅",
+    "風羚": "俐羚",
+    "亞短": "亞箴",
+    "逝勒": "迦勒",
+    "迴勒": "迦勒"
+}
+
 def get_drive_service():
     creds = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES)
     return build('drive', 'v3', credentials=creds)
 
-
 def ensure_cache_dir():
     os.makedirs("cache", exist_ok=True)
-
 
 def download_file_from_drive(folder_id, keywords, ext_list=['.csv', '.xlsx']):
     service = get_drive_service()
@@ -36,8 +42,6 @@ def download_file_from_drive(folder_id, keywords, ext_list=['.csv', '.xlsx']):
                 cache_path = os.path.join("cache", name)
                 if os.path.exists(cache_path):
                     return cache_path, ext
-
-                # 下載
                 request = service.files().get_media(fileId=file_id)
                 with open(cache_path, 'wb') as f:
                     downloader = MediaIoBaseDownload(f, request)
@@ -45,9 +49,37 @@ def download_file_from_drive(folder_id, keywords, ext_list=['.csv', '.xlsx']):
                     while not done:
                         status, done = downloader.next_chunk()
                 return cache_path, ext
-
     return None, None
 
+def correct_ocr_errors(line):
+    for wrong, correct in NAME_CORRECTIONS.items():
+        line = line.replace(wrong, correct)
+    return line
+
+def parse_schedule_text(text, target_month, name):
+    lines = text.splitlines()
+    results = []
+    current_date = None
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        line = correct_ocr_errors(line)
+
+        date_match = re.search(rf"{target_month}月\d{{1,2}}", line)
+        if date_match:
+            current_date = date_match.group()
+        elif re.search(r"\d{1,2}月\d{1,2}", line):
+            other_month_match = re.search(r"(\d{1,2})月\d{1,2}", line)
+            if other_month_match and int(other_month_match.group(1)) != target_month:
+                current_date = None
+
+        if current_date and name in line:
+            results.append(f"{current_date}：{line}")
+
+    return results
 
 def extract_choir_schedule_from_image(folder_id, keywords, target_month, target_name, return_debug=False):
     service = get_drive_service()
@@ -78,10 +110,8 @@ def extract_choir_schedule_from_image(folder_id, keywords, target_month, target_
                         done = False
                         while not done:
                             status, done = downloader.next_chunk()
-
                 img = Image.open(img_path)
                 text = pytesseract.image_to_string(img, lang='chi_tra')
-
                 with open(ocr_txt_path, "w", encoding="utf-8") as f:
                     f.write(text)
 
@@ -92,32 +122,4 @@ def extract_choir_schedule_from_image(folder_id, keywords, target_month, target_
             else:
                 return result_lines
 
-    if return_debug:
-        return [], "", False
-    return []
-
-def parse_schedule_text(text, target_month, name):
-    lines = text.splitlines()
-    results = []
-    current_date = None
-
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-
-        # 檢查是否為目標月份的日期行（e.g. "6月7" or "6月14"）
-        date_match = re.search(rf"{target_month}月\d{{1,2}}", line)
-        if date_match:
-            current_date = date_match.group()
-        elif re.search(r"\d{1,2}月\d{1,2}", line):
-            # 若非目標月份出現日期，例如 7月或 8月
-            other_month_match = re.search(r"(\d{1,2})月\d{1,2}", line)
-            if other_month_match and int(other_month_match.group(1)) != target_month:
-                current_date = None  # 不再使用先前的日期
-
-        # 如目前日期為本月，且行內出現姓名，加入結果
-        if current_date and name in line:
-            results.append(f"{current_date}：{line}")
-
-    return results
+    return ([], "", False) if return_debug else []
