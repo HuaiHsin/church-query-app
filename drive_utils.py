@@ -96,7 +96,7 @@ def extract_choir_schedule_from_image(folder_id, keywords, target_month, target_
         return [], "", False
     return []
 
-def parse_schedule_text(text, month, name):
+def parse_schedule_text(text, target_month, name):
     lines = text.splitlines()
     results = []
     current_date = None
@@ -106,13 +106,18 @@ def parse_schedule_text(text, month, name):
         if not line:
             continue
 
-        # 1. 尋找日期（例如 6月7 或 6月14）
-        date_match = re.search(rf"{month}月\d{{1,2}}", line)
+        # 檢查是否為目標月份的日期行（e.g. "6月7" or "6月14"）
+        date_match = re.search(rf"{target_month}月\d{{1,2}}", line)
         if date_match:
             current_date = date_match.group()
+        elif re.search(r"\d{1,2}月\d{1,2}", line):
+            # 若非目標月份出現日期，例如 7月或 8月
+            other_month_match = re.search(r"(\d{1,2})月\d{1,2}", line)
+            if other_month_match and int(other_month_match.group(1)) != target_month:
+                current_date = None  # 不再使用先前的日期
 
-        # 2. 找到名稱（模糊比對，例如「雅婷」）
-        if name in line and current_date:
+        # 如目前日期為本月，且行內出現姓名，加入結果
+        if current_date and name in line:
             results.append(f"{current_date}：{line}")
 
     return results
