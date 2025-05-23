@@ -7,7 +7,6 @@ import pandas as pd
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request, year: int = None, month: int = None, name: str = None):
     return templates.TemplateResponse("index.html", {
@@ -22,7 +21,6 @@ async def home(request: Request, year: int = None, month: int = None, name: str 
         "error": None
     })
 
-
 @app.get("/query", response_class=HTMLResponse)
 async def query_schedule(request: Request, year: int, month: int, name: str):
     folder_id = "18onzzoBnI3Lhwfm8IlMhwrOoIrcV5g8J"
@@ -35,7 +33,7 @@ async def query_schedule(request: Request, year: int, month: int, name: str):
     results = []
     error = None
 
-    # 解析 CSV/XLSX
+    # --- CSV/XLSX 聖工安排表 ---
     if filepath:
         try:
             df = pd.read_csv(filepath, header=1) if ext == '.csv' else pd.read_excel(filepath, header=1)
@@ -90,10 +88,11 @@ async def query_schedule(request: Request, year: int, month: int, name: str):
         except Exception as e:
             error = f"CSV/XLSX 讀取錯誤：{str(e)}"
 
-    # 圖片 OCR 安排表
+    # --- 圖片佳音詩班安排 ---
     choir_keywords = [f"{minguo_year}年", "佳音", "安排"]
     choir_results, ocr_text, ocr_from_cache = extract_choir_schedule_from_image(
-        folder_id, choir_keywords, month, name, return_debug=True)
+        folder_id, choir_keywords, month, name, return_debug=True
+    )
 
     return templates.TemplateResponse("index.html", {
         "request": request,
