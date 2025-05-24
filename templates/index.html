@@ -1,102 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>聖工任務查詢</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-      max-width: 700px;
-      margin: auto;
-    }
-    h2, h3 {
-      color: #2c3e50;
-    }
-    label {
-      display: block;
-      margin-top: 10px;
-    }
-    input {
-      width: 100%;
-      padding: 8px;
-      box-sizing: border-box;
-    }
-    button {
-      margin-top: 15px;
-      padding: 10px 20px;
-      background-color: #3498db;
-      border: none;
-      color: white;
-      cursor: pointer;
-      border-radius: 4px;
-    }
-    button:hover {
-      background-color: #2980b9;
-    }
-    .task {
-      margin-top: 15px;
-      padding: 10px;
-      background: #f2f2f2;
-      border-left: 5px solid #3498db;
-      border-radius: 4px;
-    }
-    .error {
-      color: red;
-      margin-top: 15px;
-      font-weight: bold;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>聖工排程查詢</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        input, select { padding: 5px; }
+        ul { list-style: none; padding: 0; }
+        li { margin-bottom: 10px; }
+    </style>
 </head>
 <body>
-  <h2>聖工任務查詢</h2>
+    <h1>📅 查詢聖工/詩班排程</h1>
+    <form action="/query" method="get">
+        <label>年份：
+            <input type="number" name="year" value="{{ year or '' }}" required>
+        </label>
+        <label>月份：
+            <input type="number" name="month" value="{{ month or '' }}" required>
+        </label>
+        <label>姓名：
+            <input type="text" name="name" value="{{ name or '' }}" required>
+        </label>
+        <button type="submit">查詢</button>
+    </form>
 
-  <form method="get" action="/query">
-    <label>年份（西元）:</label>
-    <input type="number" name="year" value="{{ year or '' }}" required>
+    {% if error %}
+        <p style="color: red;">{{ error }}</p>
+    {% endif %}
 
-    <label>月份:</label>
-    <input type="number" name="month" value="{{ month or '' }}" required>
+    {% if unified_results %}
+        <h2>查詢結果</h2>
+        <ul>
+            {% for r in unified_results %}
+                <li>📅 {{ r.date }} {{ r.time }}<br>
+                    ▪ {{ r.role }}: {{ r.name }}
+                    {% if r.source %}
+                        <span style="color: gray;">（{{ r.source }}）</span>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+        <p style="color: gray;">
+            OCR {% if ocr_from_cache %}（使用快取）{% else %}（重新辨識）{% endif %}
+        </p>
+    {% endif %}
 
-    <label>姓名（中文）:</label>
-    <input type="text" name="name" value="{{ name or '' }}" required>
-
-    <button type="submit">查詢</button>
-  </form>
-
-  {% if error %}
-    <p class="error">⚠️ {{ error }}</p>
-  {% endif %}
-
-  {% if results %}
-    <h3>一般聖工安排</h3>
-    {% for r in results %}
-      <div class="task">
-        📅 {{ r.date }}（{{ r.weekday }}） {{ r.time }}<br>
-        {% for task in r.tasks %}
-          ▪ {{ task }}<br>
-        {% endfor %}
-      </div>
-    {% endfor %}
-  {% endif %}
-
-{% if choir_results %}
-  <h3>佳音詩班安排（圖片）</h3>
-  <ul>
-    {% for r in choir_results %}
-      <li>📅 {{ r.date }} 16:30-18:00<br>▪ {{ r.role }}: {{ r.name }}</li>
-    {% endfor %}
-  </ul>
-  <p style="color: gray;">OCR {% if ocr_from_cache %}（使用快取）{% else %}（重新辨識）{% endif %}</p>
-{% endif %}
-
-{% if ocr_debug %}
-  <details>
-    <summary>🔍 顯示 OCR 原始文字（debug）</summary>
-    <pre style="white-space: pre-wrap; background: #f9f9f9; padding: 10px;">{{ ocr_debug }}</pre>
-  </details>
-{% endif %}
-
+    {% if ocr_debug %}
+        <details>
+            <summary>🔍 顯示 OCR 原始文字（debug）</summary>
+            <pre style="white-space: pre-wrap; background: #f9f9f9; padding: 10px;">{{ ocr_debug }}</pre>
+        </details>
+    {% endif %}
 </body>
 </html>
