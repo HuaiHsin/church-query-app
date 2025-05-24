@@ -18,8 +18,7 @@ async def home(request: Request, year: int = None, month: int = None, name: str 
         "year": year,
         "month": month,
         "name": name,
-        "results": None,
-        "choir_results": None,
+        "unified_results": None,
         "ocr_debug": None,
         "ocr_from_cache": False,
         "error": None
@@ -35,10 +34,10 @@ async def query_schedule(request: Request, year: int, month: int, name: str):
     search_keywords = [f"{minguo_year}年", month_name, "聖工安排"]
 
     filepath, ext = download_file_from_drive(folder_id, search_keywords)
-    results = []
+    unified_results = []
     error = None
 
-    # --- CSV/XLSX 聖工安排表 ---
+    # --- 表格處理（CSV/XLSX） ---
     if filepath:
         try:
             df = pd.read_csv(filepath, header=1) if ext == '.csv' else pd.read_excel(filepath, header=1)
@@ -70,45 +69,56 @@ async def query_schedule(request: Request, year: int, month: int, name: str):
                 else:
                     time_range = "20:00-21:00"
 
-                matched = []
                 for field in name_fields:
                     if field in row and pd.notna(row[field]):
                         cell = str(row[field])
                         if name in cell:
-                            matched.append(f"{field}: {cell}")
+                            unified_results.append({
+                                "date": date_str,
+                                "time": time_range,
+                                "role": field,
+                                "name": cell,
+                                "source": "表格"
+                            })
                 if misc_field in row and pd.notna(row[misc_field]):
                     misc_val = str(row[misc_field])
                     if name in misc_val:
-                        matched.append(misc_val)
-
-                if matched:
-                    results.append({
-                        "date": date_str,
-                        "weekday": weekday,
-                        "tasks": matched,
-                        "time": time_range
-                    })
+                        unified_results.append({
+                            "date": date_str,
+                            "time": time_range,
+                            "role": "附記",
+                            "name": misc_val,
+                            "source": "表格"
+                        })
 
                 prev_date = row['日期']
         except Exception as e:
             error = f"CSV/XLSX 讀取錯誤：{str(e)}"
 
-    # --- 圖片佳音詩班安排 ---
+    # --- 圖片 OCR 處理 ---
     choir_keywords = [f"{minguo_year}年", "佳音", "安排"]
-    raw_results, ocr_text, ocr_from_cache = extract_choir_schedule_from_image(
+    _, ocr_text, ocr_from_cache = extract_choir_schedule_from_image(
         folder_id, choir_keywords, month, name, return_debug=True
     )
 
-    # 將原始 OCR 文本經新結構化邏輯分析
     choir_results = parse_choir_text_structured(ocr_text, month, name)
+    for r in choir_results:
+        unified_results.append({
+            "date": r["date"],
+            "time": r["time"],
+            "role": r["role"],
+            "name": r["name"],
+            "source": "圖片"
+        })
+
+    unified_results.sort(key=lambda x: x["date"] + x["time"])
 
     return templates.TemplateResponse("index.html", {
         "request": request,
         "year": year,
         "month": month,
         "name": name,
-        "results": results,
-        "choir_results": choir_results,
+        "unified_results": unified_results,
         "ocr_debug": ocr_text,
         "ocr_from_cache": ocr_from_cache,
         "error": error
